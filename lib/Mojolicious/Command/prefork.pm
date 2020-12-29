@@ -23,12 +23,15 @@ sub run {
     'k|keep-alive-timeout=i' => sub { $prefork->keep_alive_timeout($_[1]) },
     'l|listen=s'             => \my @listen,
     'P|pid-file=s'           => sub { $prefork->pid_file($_[1]) },
-    'p|proxy'                => sub { $prefork->reverse_proxy(1) },
+    'p|proxy:s'              => \my @proxy,
     'r|requests=i'           => sub { $prefork->max_requests($_[1]) },
     's|spare=i'              => sub { $prefork->spare($_[1]) },
     'w|workers=i'            => sub { $prefork->workers($_[1]) };
 
   $prefork->listen(\@listen) if @listen;
+  $prefork->reverse_proxy(1) if @proxy;
+  my @trusted = grep {length} @proxy;
+  $prefork->trusted_proxies(\@trusted) if @trusted;
   $prefork->run;
 }
 
@@ -45,10 +48,11 @@ Mojolicious::Command::prefork - Pre-fork command
   Usage: APPLICATION prefork [OPTIONS]
 
     ./myapp.pl prefork
-    ./myapp.pl prefork -m production -l http://*:8080
+    ./myapp.pl prefork -m production -p -l http://*:8080
     ./myapp.pl prefork -l http://127.0.0.1:8080 -l https://[::]:8081
     ./myapp.pl prefork -l 'https://*:443?cert=./server.crt&key=./server.key'
     ./myapp.pl prefork -l http+unix://%2Ftmp%2Fmyapp.sock -w 12
+    ./myapp.pl prefork -l http://127.0.0.1:8080 -p 127.0/8 -p fc00::/7
 
   Options:
     -a, --accepts <number>               Number of connections for workers to
@@ -76,9 +80,11 @@ Mojolicious::Command::prefork - Pre-fork command
                                          MOJO_MODE/PLACK_ENV or "development"
     -P, --pid-file <path>                Path to process id file, defaults to
                                          "prefork.pid" in a temporary directory
-    -p, --proxy                          Activate reverse proxy support,
+    -p, --proxy [<network>]              Activate reverse proxy support,
                                          defaults to the value of
-                                         MOJO_REVERSE_PROXY
+                                         MOJO_REVERSE_PROXY, optionally takes
+                                         one or more trusted proxy addresses or
+                                         networks
     -r, --requests <number>              Maximum number of requests per
                                          keep-alive connection, defaults to 100
     -s, --spare <number>                 Temporarily spawn up to this number of
