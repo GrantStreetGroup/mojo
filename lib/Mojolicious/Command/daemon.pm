@@ -7,7 +7,7 @@ use Mojo::Util qw(getopt);
 has description => 'Start application with HTTP and WebSocket server';
 has usage       => sub { shift->extract_usage };
 
-sub run {
+sub build_server {
   my ($self, @args) = @_;
 
   my $daemon = Mojo::Server::Daemon->new(app => $self->app);
@@ -25,6 +25,12 @@ sub run {
   $daemon->reverse_proxy(1) if @proxy;
   my @trusted = grep {length} @proxy;
   $daemon->trusted_proxies(\@trusted) if @trusted;
+  return $daemon;
+}
+
+sub run {
+  my ($self, @args) = @_;
+  my $daemon = $self->build_server(@args);
   $daemon->run;
 }
 

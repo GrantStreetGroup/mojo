@@ -7,7 +7,7 @@ use Mojo::Util qw(getopt);
 has description => 'Start application with pre-forking HTTP and WebSocket server';
 has usage       => sub { shift->extract_usage };
 
-sub run {
+sub build_server {
   my ($self, @args) = @_;
 
   my $prefork = Mojo::Server::Prefork->new(app => $self->app);
@@ -32,6 +32,12 @@ sub run {
   $prefork->reverse_proxy(1) if @proxy;
   my @trusted = grep {length} @proxy;
   $prefork->trusted_proxies(\@trusted) if @trusted;
+  return $prefork;
+}
+
+sub run {
+  my ($self, @args) = @_;
+  my $prefork = $self->build_server(@args);
   $prefork->run;
 }
 
